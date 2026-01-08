@@ -57,10 +57,10 @@ new	classlimit[TEAM_SIZE][MAX_CLASS], Handle:blockchange_enabled = INVALID_HANDL
 public Plugin:myinfo =
 {
 	name        = PLUGIN_NAME,
-	author      = "Root",
+	author      = "pratinha",
 	description = "Prevents immediately re-spawning after changing player class within a spawn area (always blocks)",
 	version     = PLUGIN_VERSION,
-	url         = "http://dodsplugins.com/"
+	url         = "https://github.com/pratinha10/dodgs_plugin"
 }
 
 
