@@ -6,6 +6,7 @@
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
 A small collection of **SourceMod plugins** developed for the **DODS Global** community, focused on improving competitive integrity in **Day of Defeat: Source**.
+
 ![Banner](https://i.ibb.co/SDRxtqCH/Youtube-Banner.jpg)
 
 ---
