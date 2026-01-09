@@ -17,6 +17,15 @@ A small collection of **SourceMod plugins** developed for the **DODS Global** co
 Prevents players from forcing a respawn by switching teams/class during an active round.  
 Designed to stop round abuse and enforce fair play in competitive matches.
 
+- ✅ Blocks immediate respawn when changing class in spawn areas
+- ✅ Works for both Allied and Axis teams
+- ✅ Respects server class limits (mp_limit_* cvars)
+- ✅ Shows "You will respawn as [class]" message to players
+
+
+### sprintblock
+Blocks or restricts sprint usage to align movement mechanics with competitive or custom rule sets.
+
 The plugin uses `SDKHook_PreThink` to monitor player inputs every server tick (66 tick servers). It:
 
 1. **Tracks button press order**: Detects whether Sprint or Forward was pressed first
@@ -28,11 +37,6 @@ The plugin uses `SDKHook_PreThink` to monitor player inputs every server tick (6
 - **Memory**: ~16 bytes per player
 - **Network**: No additional network traffic
 - **Optimized**: Uses native Source Engine functions for maximum efficiency
-
-
-
-### sprintblock
-Blocks or restricts sprint usage to align movement mechanics with competitive or custom rule sets.
 
 ---
 
