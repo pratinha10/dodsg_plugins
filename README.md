@@ -34,12 +34,6 @@ The plugin uses `SDKHook_PreThink` to monitor player inputs every server tick (6
 2. **Monitors stamina recovery**: Flags when a player's stamina reaches 100%
 3. **Applies penalty**: If the exploit pattern is detected, forces stamina to drop on next sprint activation
 
-**Performance**
-- **CPU Usage**: < 0.01% on servers with up to 32 players
-- **Memory**: ~16 bytes per player
-- **Network**: No additional network traffic
-- **Optimized**: Uses native Source Engine functions for maximum efficiency
-
 ### 💽 dodsg_firstpersoncam (Forces First Person POV while dead)
 This plugin enhances the spectator experience by automatically forcing first-person camera when observing teammates after death. Players can still switch between teammates normally, but the view is locked to first-person perspective.
 
