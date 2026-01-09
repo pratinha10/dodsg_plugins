@@ -1,21 +1,20 @@
-// Originally developed by <eVa>Dog
-// Modernized and fixed - 2026
-//
-// DESCRIPTION:
-// For Day of Defeat: Source only
-// This plugin implements the "Fade to Black" effect when players die
-//
-// CHANGELOG:
-// - 2026.01 Version 2.0.0 - Complete modernization and bug fixes
-//Console Commands
-//dodsg_ftb_enabled 0      // Disables plugin
-//dodsg_ftb_speed 0.5      // Fade Speed (0.1 = very fast, 2.0 = slow)
-//dodsg_ftb_delay 3.0      // How long stays black
-//dodsg_ftb_red 0          // Red Color
-//dodsg_ftb_green 0        // Green Color
-//dodsg_ftb_blue 0         // Blue Color
-//dodsg_ftb_alpha 255      // Opacity
+/**
+Originally developed by <eVa>Dog
+Modernized and fixed by pratinha
 
+DESCRIPTION:
+For Day of Defeat: Source only
+This plugin implements the "Fade to Black" effect when players die
+
+CONSOLE COMMANDS
+dodsg_ftb_enabled 0      // Disables plugin
+dodsg_ftb_speed 0.5      // Fade Speed (0.1 = very fast, 2.0 = slow)
+dodsg_ftb_delay 3.0      // How long stays black
+dodsg_ftb_red 0          // Red Color
+dodsg_ftb_green 0        // Green Color
+dodsg_ftb_blue 0         // Blue Color
+dodsg_ftb_alpha 255      // Opacity
+*/
 #include <sourcemod>
 #include <sdktools>
 
