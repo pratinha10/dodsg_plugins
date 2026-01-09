@@ -38,6 +38,15 @@ The plugin uses `SDKHook_PreThink` to monitor player inputs every server tick (6
 - **Network**: No additional network traffic
 - **Optimized**: Uses native Source Engine functions for maximum efficiency
 
+### 💽 dodsg_firstpersoncam (Forces First Person POV while dead)
+This plugin enhances the spectator experience by automatically forcing first-person camera when observing teammates after death. Players can still switch between teammates normally, but the view is locked to first-person perspective.
+
+- ✅ Automatic first-person view when observing teammates
+- ✅ 4.8 second delay after death before forcing the camera mode
+- ✅ Players can freely switch between teammates
+- ✅ Prevents switching to third-person or free-look modes
+- ✅ Lightweight and optimized performance
+
 ### 💽 dodsg_ftb (Fade to Black)
 A modern SourceMod plugin for Day of Defeat: Source that implements a realistic "Fade to Black" effect when players die.
 
