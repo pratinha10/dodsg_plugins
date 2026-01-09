@@ -66,4 +66,5 @@ MIT License
 
 Developed for the [**DODS Global**](https://dodsglobal.com/league) community.
 Feel free to join them on [discord](https://discord.com/invite/B8z3vrYxHP).
+
 Issues and pull requests are welcome.
