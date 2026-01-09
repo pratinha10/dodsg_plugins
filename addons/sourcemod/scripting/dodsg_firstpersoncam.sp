@@ -25,7 +25,7 @@ public Plugin myinfo = {
     author = "pratinha",
     description = "Forces first person camera when observing teammates after death",
     version = "1.0.1",
-    url = "https://github.com/pratinha10/dodgs_plugin"
+    url = "https://github.com/pratinha10/dodsg_plugins"
 };
 
 public void OnPluginStart() {

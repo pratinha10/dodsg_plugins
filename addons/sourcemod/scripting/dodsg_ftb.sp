@@ -2,7 +2,7 @@
 // SourceMod Script
 //
 // Originally developed by <eVa>Dog
-// Modernized and fixed - 2026
+// Modernized and fixed by pratinha
 //
 // DESCRIPTION:
 // For Day of Defeat: Source only
@@ -40,7 +40,7 @@ public Plugin myinfo =
 	author = "pratinha",
 	description = "Fade to Black for Day of Defeat: Source",
 	version = PLUGIN_VERSION,
-	url = "https://github.com/pratinha10/dodgs_plugin"
+	url = "https://github.com/pratinha10/dodsg_plugins"
 }
 
 public void OnPluginStart()
