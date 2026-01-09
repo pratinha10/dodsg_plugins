@@ -56,7 +56,7 @@ A modern SourceMod plugin for Day of Defeat: Source that implements a realistic 
 ```
 dodsg_ftb_enabled 1      // Enable/disable plugin (default: 1)
 dodsg_ftb_speed 0.5      // Fade transition speed in seconds (default: 0.5) (0.1 = very fast, 2.0 = slow)
-dodsg_ftb_delay 3.0      // Duration to stay black in seconds (default: 3.0)
+dodsg_ftb_delay 5.0      // Duration to stay black in seconds (default: 5.0)
 dodsg_ftb_red 0          // Red color value 0-255 (default: 0)
 dodsg_ftb_green 0        // Green color value 0-255 (default: 0)
 dodsg_ftb_blue 0         // Blue color value 0-255 (default: 0)
