@@ -41,11 +41,11 @@ The plugin uses `SDKHook_PreThink` to monitor player inputs every server tick (6
 ### dodsg_ftb
 A modern SourceMod plugin for Day of Defeat: Source that implements a realistic "Fade to Black" effect when players die.
 
-✅ Instant black screen fade on death
-✅ Configurable fade speed and duration
-✅ Customizable RGB colors
-✅ Auto-enables on installation
-✅ Optimized performance (unhooks when disabled)
+- ✅ Instant black screen fade on death
+- ✅ Configurable fade speed and duration
+- ✅ Customizable RGB colors
+- ✅ Auto-enables on installation
+- ✅ Optimized performance (unhooks when disabled)
 
 **Available Commands**
 ```
