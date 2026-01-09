@@ -58,7 +58,7 @@ dodsg_ftb_blue 0         // Blue color value 0-255 (default: 0)
 dodsg_ftb_alpha 255      // Transparency 0-255 (default: 255)
 ```
 **Credits**
-- [Original](https://forums.alliedmods.net/showthread.php?t=73173) plugin by <eVa>Dog
+- [Original](https://forums.alliedmods.net/showthread.php?t=73173) plugin `sm_dod_ftb` by <eVa>Dog
 ---
 
 ## Requirements
