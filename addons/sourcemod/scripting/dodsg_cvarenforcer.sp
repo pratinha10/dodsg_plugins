@@ -16,10 +16,7 @@
  *   - Easy configuration via KeyValues file
  * 
  * Commands:
- *   sm_dodsg_test      - Display plugin configuration (ROOT)
- *   sm_dodsg_reload    - Reload configuration file (ROOT)
  *   sm_dodsg_check     - Check specific player's CVars (ADMIN)
- *   sm_dodsg_testmsg   - Test violation message in chat (SERVER CONSOLE)
  * 
  * ConVars:
  *   sm_dodsg_timer     - CVar check interval in seconds (default: 10.0)
@@ -84,17 +81,16 @@ public void OnPluginStart()
     g_cvMaxWarnings.AddChangeHook(OnConVarChanged);
     
     // Admin commands
-    RegAdminCmd("sm_dodsg_test", Command_Test, ADMFLAG_ROOT, "Test plugin configuration");
-    RegAdminCmd("sm_dodsg_reload", Command_Reload, ADMFLAG_ROOT, "Reload configuration");
     RegAdminCmd("sm_dodsg_check", Command_CheckPlayer, ADMFLAG_GENERIC, "Check specific player");
-    RegServerCmd("sm_dodsg_testmsg", Command_TestMessage, "Test violation message in chat");
-    RegServerCmd("sm_dodsg_testkick", Command_TestKick, "Test kick punishment on all players");
     
     // Auto-execute config
     AutoExecConfig(true, "dodsg_cvar_checker");
     
     // Initialize ArrayList
     g_CvarList = new ArrayList(sizeof(CvarData));
+    
+    // Load configuration immediately on plugin start
+    LoadConfiguration();
 }
 
 public void OnConfigsExecuted()
@@ -130,11 +126,16 @@ void LoadConfiguration()
     char configPath[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, configPath, sizeof(configPath), "configs/dodsg_cvar_checker.cfg");
     
+    PrintToServer("[DODSG] Looking for config file at: %s", configPath);
+    
     if (!FileExists(configPath))
     {
         LogError("Configuration file not found: %s", configPath);
+        PrintToServer("[DODSG] ERROR: Configuration file not found!");
         return;
     }
+    
+    PrintToServer("[DODSG] Config file exists, loading...");
     
     // Clear existing list
     g_CvarList.Clear();
@@ -144,12 +145,17 @@ void LoadConfiguration()
     if (!kv.ImportFromFile(configPath))
     {
         LogError("Failed to load configuration file");
+        PrintToServer("[DODSG] ERROR: Failed to import KeyValues from file!");
         delete kv;
         return;
     }
     
+    PrintToServer("[DODSG] KeyValues imported successfully");
+    
     if (kv.GotoFirstSubKey())
     {
+        PrintToServer("[DODSG] Found first subkey, reading CVars...");
+        
         do
         {
             CvarData data;
@@ -163,8 +169,15 @@ void LoadConfiguration()
             data.banTime = kv.GetNum("bantime", 0);
             
             g_CvarList.PushArray(data);
+            
+            PrintToServer("[DODSG] Loaded CVar: %s (mode=%d, value=%s, punishment=%d)", 
+                data.name, data.mode, data.value, data.punishment);
         }
         while (kv.GotoNextKey());
+    }
+    else
+    {
+        PrintToServer("[DODSG] ERROR: No subkeys found in config file!");
     }
     
     delete kv;
@@ -173,6 +186,7 @@ void LoadConfiguration()
     ResetAllWarnings();
     
     LogMessage("Configuration loaded: %d cvars monitored", g_CvarList.Length);
+    PrintToServer("[DODSG] Configuration loaded successfully: %d CVars monitored", g_CvarList.Length);
 }
 
 void ResetAllWarnings()
@@ -200,19 +214,27 @@ void CheckClientCvars(int client)
 {
     int length = g_CvarList.Length;
     
+    PrintToServer("[DODSG] Checking %d CVars for client %N", length, client);
+    
     for (int i = 0; i < length; i++)
     {
         CvarData data;
         g_CvarList.GetArray(i, data);
         
+        PrintToServer("[DODSG] Querying CVar: %s for client %N", data.name, client);
         QueryClientConVar(client, data.name, OnCvarQueried, i);
     }
 }
 
 public void OnCvarQueried(QueryCookie cookie, int client, ConVarQueryResult result, const char[] cvarName, const char[] cvarValue, int cvarIndex)
 {
+    PrintToServer("[DODSG] Query result for %s: result=%d, value=%s, client=%N", cvarName, result, cvarValue, client);
+    
     if (!IsValidClient(client))
+    {
+        PrintToServer("[DODSG] Client %d is not valid, skipping", client);
         return;
+    }
     
     if (result != ConVarQuery_Okay)
     {
@@ -222,6 +244,8 @@ public void OnCvarQueried(QueryCookie cookie, int client, ConVarQueryResult resu
     
     CvarData data;
     g_CvarList.GetArray(cvarIndex, data);
+    
+    PrintToServer("[DODSG] Checking %s: current=%s, expected=%s, mode=%d", cvarName, cvarValue, data.value, data.mode);
     
     // Check if value is incorrect
     bool isViolation = false;
@@ -271,7 +295,12 @@ public void OnCvarQueried(QueryCookie cookie, int client, ConVarQueryResult resu
     
     if (isViolation)
     {
+        PrintToServer("[DODSG] VIOLATION DETECTED! %s = %s for client %N", cvarName, cvarValue, client);
         HandleViolation(client, cvarName, cvarValue, data);
+    }
+    else
+    {
+        PrintToServer("[DODSG] CVar %s is correct for client %N", cvarName, client);
     }
 }
 
@@ -368,6 +397,30 @@ void HandleQueryError(ConVarQueryResult result, const char[] cvarName)
 public void OnClientPutInServer(int client)
 {
     g_iPlayerWarnings[client] = 0;
+    
+    // Check CVars immediately when player joins (after a small delay to let them fully connect)
+    if (IsValidClient(client))
+    {
+        CreateTimer(5.0, Timer_CheckNewPlayer, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+    }
+}
+
+public Action Timer_CheckNewPlayer(Handle timer, int userid)
+{
+    int client = GetClientOfUserId(userid);
+    
+    if (client && IsValidClient(client))
+    {
+        PrintToServer("[DODSG] Checking CVars for newly connected player: %N", client);
+        PrintToServer("[DODSG] Client index: %d, IsInGame: %d, IsFakeClient: %d", client, IsClientInGame(client), IsFakeClient(client));
+        CheckClientCvars(client);
+    }
+    else
+    {
+        PrintToServer("[DODSG] Client validation failed for userid %d", userid);
+    }
+    
+    return Plugin_Stop;
 }
 
 public void OnClientDisconnect(int client)
@@ -389,41 +442,6 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 
 // ========== COMMANDS ==========
 
-public Action Command_Test(int client, int args)
-{
-    if (!client || IsFakeClient(client))
-        return Plugin_Handled;
-    
-    int length = g_CvarList.Length;
-    PrintToConsole(client, "=== Client ConVar Checker Configuration ===");
-    PrintToConsole(client, "Total monitored CVars: %d", length);
-    
-    for (int i = 0; i < length; i++)
-    {
-        CvarData data;
-        g_CvarList.GetArray(i, data);
-        
-        PrintToConsole(client, "[%d] %s | Value: %s | Min: %s | Max: %s | Mode: %d | Punishment: %d | Ban: %dm",
-            i + 1, data.name, data.value, 
-            data.minValue[0] ? data.minValue : "N/A",
-            data.maxValue[0] ? data.maxValue : "N/A",
-            data.mode, data.punishment, data.banTime);
-    }
-    
-    PrintToChat(client, "Information sent to console.");
-    return Plugin_Handled;
-}
-
-public Action Command_Reload(int client, int args)
-{
-    LoadConfiguration();
-    
-    if (client)
-        PrintToChat(client, "\x07FF0000[DODSG]\x01 Configuration reloaded successfully!");
-    
-    return Plugin_Handled;
-}
-
 public Action Command_CheckPlayer(int client, int args)
 {
     if (args < 1)
@@ -444,41 +462,6 @@ public Action Command_CheckPlayer(int client, int args)
     char targetName[MAX_NAME_LENGTH];
     GetClientName(target, targetName, sizeof(targetName));
     ReplyToCommand(client, "\x07FF0000[DODSG]\x01 Checking %s's CVars...", targetName);
-    
-    return Plugin_Handled;
-}
-
-public Action Command_TestMessage(int args)
-{
-    // Send test violation message to all players in the server
-    for (int i = 1; i <= MaxClients; i++)
-    {
-        if (IsValidClient(i))
-        {
-            PrintToChat(i, "\x07FF0000[DODSG]\x01 \x05TestPlayer\x01 has invalid CVar \x04r_shadows\x01 = \x031\x01 (\x052\x01 warnings left)");
-        }
-    }
-    
-    PrintToServer("[DODSG] Test violation message sent to all players in chat!");
-    
-    return Plugin_Handled;
-}
-
-public Action Command_TestKick(int args)
-{
-    int kickedCount = 0;
-    
-    // Kick all players in the server with proper expected value message
-    for (int i = 1; i <= MaxClients; i++)
-    {
-        if (IsValidClient(i))
-        {
-            KickClient(i, "[DODSG Enforcer] r_shadows 1 | Change it to 0");
-            kickedCount++;
-        }
-    }
-    
-    PrintToServer("[DODSG] Test kick executed! %d players kicked from server.", kickedCount);
     
     return Plugin_Handled;
 }
