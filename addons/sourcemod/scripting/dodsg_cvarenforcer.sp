@@ -1,6 +1,40 @@
+/*
+ * DoD:S ConVar Enforcer
+ * 
+ * Description:
+ *   Monitors and enforces client console variable (CVar) values in Day of Defeat: Source.
+ *   Automatically checks player CVars at regular intervals and applies warnings/punishments
+ *   for invalid values. Supports multiple checking modes including exact match, range validation,
+ *   and min/max limits.
+ * 
+ * Features:
+ *   - Periodic CVar checking with configurable intervals
+ *   - Multiple validation modes (equal, not equal, range, min, max)
+ *   - Warning system with configurable attempts before punishment
+ *   - Public violation alerts visible to all players
+ *   - Kick or temporary ban punishments
+ *   - Easy configuration via KeyValues file
+ * 
+ * Commands:
+ *   sm_dodsg_test      - Display plugin configuration (ROOT)
+ *   sm_dodsg_reload    - Reload configuration file (ROOT)
+ *   sm_dodsg_check     - Check specific player's CVars (ADMIN)
+ *   sm_dodsg_testmsg   - Test violation message in chat (SERVER CONSOLE)
+ * 
+ * ConVars:
+ *   sm_dodsg_timer     - CVar check interval in seconds (default: 10.0)
+ *   sm_dodsg_warn      - Number of warnings before punishment (default: 3)
+ * 
+ * Configuration:
+ *   File: addons/sourcemod/configs/dodsg_cvar_checker.cfg
+ * 
+ * Author: pratinha
+ * Version: 2.0.0
+ * URL: https://github.com/pratinha10/dodsg_plugins
+ */
+
 #include <sourcemod>
 #include <sdktools>
-#include <colors>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -9,11 +43,16 @@
 #define MAX_CVARS 1000
 #define MAX_PATH_LENGTH 256
 
+// Color definitions for Source games
+#define COLOR_DEFAULT "\x01"
+#define COLOR_TEAMCOLOR "\x03"
+#define COLOR_GREEN "\x04"
+#define COLOR_OLIVE "\x05"
+
 // Structure to store CVar data
 enum struct CvarData
 {
     char name[MAX_PATH_LENGTH];
-    char immunity[64];
     char value[MAX_PATH_LENGTH];
     char minValue[MAX_PATH_LENGTH];
     char maxValue[MAX_PATH_LENGTH];
@@ -54,6 +93,7 @@ public void OnPluginStart()
     RegAdminCmd("sm_dodsg_test", Command_Test, ADMFLAG_ROOT, "Test plugin configuration");
     RegAdminCmd("sm_dodsg_reload", Command_Reload, ADMFLAG_ROOT, "Reload configuration");
     RegAdminCmd("sm_dodsg_check", Command_CheckPlayer, ADMFLAG_GENERIC, "Check specific player");
+    RegServerCmd("sm_dodsg_testmsg", Command_TestMessage, "Test violation message in chat");
     
     // Auto-execute config
     AutoExecConfig(true, "dodsg_cvar_checker");
@@ -120,7 +160,6 @@ void LoadConfiguration()
             CvarData data;
             
             kv.GetSectionName(data.name, sizeof(CvarData::name));
-            kv.GetString("immunity", data.immunity, sizeof(CvarData::immunity), "");
             kv.GetString("value", data.value, sizeof(CvarData::value), "");
             kv.GetString("min", data.minValue, sizeof(CvarData::minValue), "");
             kv.GetString("max", data.maxValue, sizeof(CvarData::maxValue), "");
@@ -189,10 +228,6 @@ public void OnCvarQueried(QueryCookie cookie, int client, ConVarQueryResult resu
     CvarData data;
     g_CvarList.GetArray(cvarIndex, data);
     
-    // Check immunity
-    if (HasImmunity(client, data.immunity))
-        return;
-    
     // Check if value is incorrect
     bool isViolation = false;
     
@@ -255,20 +290,32 @@ void HandleViolation(int client, const char[] cvarName, const char[] cvarValue, 
     char clientName[MAX_NAME_LENGTH];
     GetClientName(client, clientName, sizeof(clientName));
     
-    // Log violation
-    LogViolation(client, cvarName, cvarValue);
-    
-    // Notify admins
-    NotifyAdmins(clientName, cvarName, cvarValue);
-    
-    // Warn player
+    // Warn player privately
     if (remainingWarnings > 0)
     {
-        CPrintToChat(client, "[DODSG] {red}Warning{default}: CVar {green}%s{default} is {red}%s{default}. Fix it or be kicked! ({yellow}%d{default} warnings left)", cvarName, cvarValue, remainingWarnings);
+        PrintToChat(client, "%s[DODSG]%s %sWarning%s: CVar %s%s%s is %s%s%s. Fix it or be kicked! (%s%d%s warnings left)", 
+            COLOR_TEAMCOLOR, COLOR_DEFAULT, COLOR_TEAMCOLOR, COLOR_DEFAULT, 
+            COLOR_GREEN, cvarName, COLOR_DEFAULT, COLOR_TEAMCOLOR, cvarValue, COLOR_DEFAULT, 
+            COLOR_OLIVE, remainingWarnings, COLOR_DEFAULT);
     }
     else if (remainingWarnings == 0)
     {
-        CPrintToChat(client, "[DODSG] {red}Final Warning{default}: CVar {green}%s{default} is {red}%s{default}. You will be punished in {yellow}%.0f{default} seconds!", cvarName, cvarValue, g_cvCheckTimer.FloatValue);
+        PrintToChat(client, "%s[DODSG]%s %sFinal Warning%s: CVar %s%s%s is %s%s%s. You will be punished in %s%.0f%s seconds!", 
+            COLOR_TEAMCOLOR, COLOR_DEFAULT, COLOR_TEAMCOLOR, COLOR_DEFAULT, 
+            COLOR_GREEN, cvarName, COLOR_DEFAULT, COLOR_TEAMCOLOR, cvarValue, COLOR_DEFAULT, 
+            COLOR_OLIVE, g_cvCheckTimer.FloatValue, COLOR_DEFAULT);
+    }
+    
+    // Notify everyone in the server with eye-catching colors
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i))
+        {
+            PrintToChat(i, "%s[DODSG]%s %s⚠ ALERT ⚠%s Player %s%s%s has invalid CVar %s%s%s = %s%s%s (%s%d%s warnings left)", 
+                COLOR_TEAMCOLOR, COLOR_DEFAULT, COLOR_TEAMCOLOR, COLOR_DEFAULT, 
+                COLOR_OLIVE, clientName, COLOR_DEFAULT, COLOR_GREEN, cvarName, COLOR_DEFAULT, 
+                COLOR_TEAMCOLOR, cvarValue, COLOR_DEFAULT, COLOR_OLIVE, remainingWarnings, COLOR_DEFAULT);
+        }
     }
     
     // Apply punishment if needed
@@ -288,7 +335,6 @@ void ApplyPunishment(int client, const char[] cvarName, const char[] cvarValue, 
         {
             Format(reason, sizeof(reason), "Invalid CVar: %s = %s", cvarName, cvarValue);
             KickClient(client, "%s", reason);
-            LogAction(client, -1, "Client kicked for invalid cvar: %s = %s", cvarName, cvarValue);
         }
         case 2: // Ban
         {
@@ -297,16 +343,8 @@ void ApplyPunishment(int client, const char[] cvarName, const char[] cvarValue, 
             Format(kickReason, sizeof(kickReason), "Banned for invalid CVar: %s = %s", cvarName, cvarValue);
             
             BanClient(client, data.banTime, BANFLAG_AUTO, reason, kickReason, "sm_dodsg");
-            LogAction(client, -1, "Client banned for %d minutes for invalid cvar: %s = %s", data.banTime, cvarName, cvarValue);
         }
     }
-}
-
-void LogViolation(int client, const char[] cvarName, const char[] cvarValue)
-{
-    char logPath[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, logPath, sizeof(logPath), "logs/dodsg_cvar_checker.log");
-    LogToFile(logPath, "%L CVar violation detected: %s = %s", client, cvarName, cvarValue);
 }
 
 void NotifyAdmins(const char[] clientName, const char[] cvarName, const char[] cvarValue)
@@ -371,12 +409,11 @@ public Action Command_Test(int client, int args)
         CvarData data;
         g_CvarList.GetArray(i, data);
         
-        PrintToConsole(client, "[%d] %s | Value: %s | Min: %s | Max: %s | Mode: %d | Punishment: %d | Ban: %dm | Immunity: %s",
+        PrintToConsole(client, "[%d] %s | Value: %s | Min: %s | Max: %s | Mode: %d | Punishment: %d | Ban: %dm",
             i + 1, data.name, data.value, 
             data.minValue[0] ? data.minValue : "N/A",
             data.maxValue[0] ? data.maxValue : "N/A",
-            data.mode, data.punishment, data.banTime,
-            data.immunity[0] ? data.immunity : "None");
+            data.mode, data.punishment, data.banTime);
     }
     
     PrintToChat(client, "Information sent to console.");
@@ -388,7 +425,7 @@ public Action Command_Reload(int client, int args)
     LoadConfiguration();
     
     if (client)
-        PrintToChat(client, "[DODSG] Configuration reloaded successfully!");
+        PrintToChat(client, "%s[DODSG]%s Configuration reloaded successfully!", COLOR_TEAMCOLOR, COLOR_DEFAULT);
     
     return Plugin_Handled;
 }
@@ -397,7 +434,7 @@ public Action Command_CheckPlayer(int client, int args)
 {
     if (args < 1)
     {
-        ReplyToCommand(client, "[DODSG] Usage: sm_dodsg_check <name|#userid>");
+        ReplyToCommand(client, "%s[DODSG]%s Usage: sm_dodsg_check <name|#userid>", COLOR_TEAMCOLOR, COLOR_DEFAULT);
         return Plugin_Handled;
     }
     
@@ -412,7 +449,26 @@ public Action Command_CheckPlayer(int client, int args)
     
     char targetName[MAX_NAME_LENGTH];
     GetClientName(target, targetName, sizeof(targetName));
-    ReplyToCommand(client, "[DODSG] Checking %s's CVars...", targetName);
+    ReplyToCommand(client, "%s[DODSG]%s Checking %s's CVars...", COLOR_TEAMCOLOR, COLOR_DEFAULT, targetName);
+    
+    return Plugin_Handled;
+}
+
+public Action Command_TestMessage(int args)
+{
+    // Send test violation message to all players in the server
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsValidClient(i))
+        {
+            PrintToChat(i, "%s[DODSG]%s %s⚠ ALERT ⚠%s Player %sTestPlayer%s has invalid CVar %sr_shadows%s = %s1%s (%s2%s warnings left)", 
+                COLOR_TEAMCOLOR, COLOR_DEFAULT, COLOR_TEAMCOLOR, COLOR_DEFAULT, 
+                COLOR_OLIVE, COLOR_DEFAULT, COLOR_GREEN, COLOR_DEFAULT, 
+                COLOR_TEAMCOLOR, COLOR_DEFAULT, COLOR_OLIVE, COLOR_DEFAULT);
+        }
+    }
+    
+    PrintToServer("[DODSG] Test violation message sent to all players in chat!");
     
     return Plugin_Handled;
 }
@@ -422,17 +478,4 @@ public Action Command_CheckPlayer(int client, int args)
 bool IsValidClient(int client)
 {
     return (client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsFakeClient(client));
-}
-
-bool IsAdmin(int client)
-{
-    return CheckCommandAccess(client, "dodsg_admin", ADMFLAG_GENERIC, true);
-}
-
-bool HasImmunity(int client, const char[] immunityFlags)
-{
-    if (immunityFlags[0] == '\0')
-        return false;
-    
-    return CheckCommandAccess(client, "dodsg_immunity", ReadFlagString(immunityFlags), true);
 }
