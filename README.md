@@ -63,7 +63,47 @@ dodsg_ftb_blue 0         // Blue color value 0-255 (default: 0)
 dodsg_ftb_alpha 255      // Transparency 0-255 (default: 255)
 ```
 **Credits**
-- [Original](https://forums.alliedmods.net/showthread.php?t=73173) plugin `sm_dod_ftb` by <eVa>Dog
+- [Original plugin](https://forums.alliedmods.net/showthread.php?t=73173) `sm_dod_ftb` by <eVa>Dog
+
+### 💽 dodsg_cvarenforcer (CVAR Checker/Enforcer)
+SourceMod plugin for Day of Defeat: Source that monitors and enforces client console variable rules.
+
+- ✅ Automatic CVar monitoring at configurable intervals
+- ✅ Warning system with multiple chances before punishment
+- ✅ Public violation alerts visible to all players
+- ✅ Auto-enables on installation
+- ✅ Immediate verification when players join
+- ✅ Configurable kick or ban punishments
+
+**Server ConVars/Commands**
+```
+sm_dodsg_timer "10.0"  // Check interval in seconds (default: 10.0)
+sm_dodsg_warn "5"      // Warnings before punishment (default: 5)
+sm_dodsg_check <name|#userid>  // Manually check player CVars
+```
+**CVar Rules**
+Edit `addons/sourcemod/configs/dodsg_cvar_checker.cfg`:
+```
+"cvar"
+{
+    "r_shadows"
+    {
+        "value"      "0"
+        "mode"       "0"
+        "punishment" "1"
+        "bantime"    "0"
+    }
+}
+```
+**Validation Modes**
+- Mode 0: Must equal exact value
+- Mode 1: Must NOT equal value
+- Mode 2: Must be within range (requires `min` and `max`)
+- Mode 3: Must be less than or equal to value
+- Mode 4: Must be greater than or equal to value
+
+**Credits**
+- [Original plugin](https://forums.alliedmods.net/showthread.php?p=2529748) `sm_dod_ftb` by Kento
 ---
 
 ## Requirements
