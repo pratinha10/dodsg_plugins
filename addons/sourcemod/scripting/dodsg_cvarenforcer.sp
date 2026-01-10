@@ -77,7 +77,7 @@ public void OnPluginStart()
 {
     // Create ConVars
     g_cvCheckTimer = CreateConVar("sm_dodsg_timer", "10.0", "CVar check interval (seconds)", FCVAR_NOTIFY, true, 5.0, true, 60.0);
-    g_cvMaxWarnings = CreateConVar("sm_dodsg_warn", "3", "Number of warnings before punishment", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+    g_cvMaxWarnings = CreateConVar("sm_dodsg_warn", "5", "Number of warnings before punishment", FCVAR_NOTIFY, true, 0.0, true, 10.0);
     
     // Hook for changes
     g_cvCheckTimer.AddChangeHook(OnConVarChanged);
@@ -323,29 +323,29 @@ void ApplyPunishment(int client, const char[] cvarName, const char[] cvarValue, 
     switch (data.mode)
     {
         case 0: // Must be equal
-            Format(expectedValue, sizeof(expectedValue), "Expected: %s", data.value);
+            Format(expectedValue, sizeof(expectedValue), "%s", data.value);
         case 1: // Must be different
-            Format(expectedValue, sizeof(expectedValue), "Must NOT be: %s", data.value);
+            Format(expectedValue, sizeof(expectedValue), "anything except %s", data.value);
         case 2: // Range
-            Format(expectedValue, sizeof(expectedValue), "Expected range: %s to %s", data.minValue, data.maxValue);
+            Format(expectedValue, sizeof(expectedValue), "between %s and %s", data.minValue, data.maxValue);
         case 3: // Max
-            Format(expectedValue, sizeof(expectedValue), "Maximum allowed: %s", data.value);
+            Format(expectedValue, sizeof(expectedValue), "%s or less", data.value);
         case 4: // Min
-            Format(expectedValue, sizeof(expectedValue), "Minimum required: %s", data.value);
+            Format(expectedValue, sizeof(expectedValue), "%s or more", data.value);
     }
     
     switch (data.punishment)
     {
         case 1: // Kick
         {
-            Format(reason, sizeof(reason), "Invalid CVar: %s = %s | %s", cvarName, cvarValue, expectedValue);
+            Format(reason, sizeof(reason), "[DODSG Enforcer] %s %s | Change it to %s", cvarName, cvarValue, expectedValue);
             KickClient(client, "%s", reason);
         }
         case 2: // Ban
         {
-            Format(reason, sizeof(reason), "Invalid CVar: %s = %s | %s", cvarName, cvarValue, expectedValue);
+            Format(reason, sizeof(reason), "[DODSG Enforcer] %s %s | Change it to %s", cvarName, cvarValue, expectedValue);
             char kickReason[512];
-            Format(kickReason, sizeof(kickReason), "Banned for invalid CVar: %s = %s | %s", cvarName, cvarValue, expectedValue);
+            Format(kickReason, sizeof(kickReason), "[DODSG Enforcer] Banned for invalid CVar: %s %s | Required: %s", cvarName, cvarValue, expectedValue);
             
             BanClient(client, data.banTime, BANFLAG_AUTO, reason, kickReason, "sm_dodsg");
         }
@@ -473,7 +473,7 @@ public Action Command_TestKick(int args)
     {
         if (IsValidClient(i))
         {
-            KickClient(i, "[TEST] Invalid CVar: r_shadows = 1 | Expected: 0");
+            KickClient(i, "[DODSG Enforcer] r_shadows 1 | Change it to 0");
             kickedCount++;
         }
     }
