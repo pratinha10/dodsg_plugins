@@ -115,6 +115,7 @@ Automatically records SourceTV demos for competitive matches. Starts recording w
 - ✅ Auto-enables SourceTV if disabled
 
 **Configuration**
+
 Plugin automatically configures SourceTV with optimal settings:
 - `tv_snapshotrate 64` - High quality recording
 - `tv_maxrate 16000` - Increased bandwidth
