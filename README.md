@@ -123,6 +123,7 @@ Plugin automatically configures SourceTV with optimal settings:
 - `tv_delay 30` - Standard competitive delay
 
 **Demo Files**
+
 Saved to `dod/demos/` with format: `DD-MM-YYYY_HHMMSS-mapname.dem`
 
 **Server ConVars/Commands**
