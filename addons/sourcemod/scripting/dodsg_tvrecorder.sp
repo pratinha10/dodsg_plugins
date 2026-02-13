@@ -15,7 +15,7 @@ public Plugin myinfo =
     name = "DoD:S Competitive Demo Recorder",
     author = "pratinha",
     description = "Records demos automatically for 6v6 matches after mp_clan_readyrestart",
-    version = "2.3.0",
+    version = "2.3.1",
     url = "https://github.com/pratinha10/dodsg_plugins"
 };
 
@@ -38,7 +38,7 @@ public void OnPluginStart()
     g_cvWarmupTime = FindConVar("mp_warmup_time");
     g_cvTvEnable = FindConVar("tv_enable");
     
-    PrintToServer("[DODSG TV Recorder] v2.3.0 loaded - Optimized");
+    PrintToServer("[DODSG TV Recorder] v2.3.1 loaded - Fixed map reload loop");
 }
 
 public void OnConfigsExecuted()
@@ -51,16 +51,14 @@ public void OnConfigsExecuted()
         return;
     }
     
-    // Check SourceTV bot existence
-    if (!IsSourceTVActive())
-    {
-        g_cvTvEnable.SetInt(1);
-        ServerCommand("tv_enable 1");
-        CreateTimer(3.0, Timer_ReloadMap, _, TIMER_FLAG_NO_MAPCHANGE);
-        return;
-    }
-    
+    // Just configure SourceTV - don't check for bot or force reload
+    // The SourceTV bot will connect automatically if tv_enable is set in server.cfg
     ConfigureSourceTV();
+    
+    PrintToServer("[DODSG TV Recorder] ═══════════════════════════════");
+    PrintToServer("[DODSG TV Recorder] Ready - SourceTV configured");
+    PrintToServer("[DODSG TV Recorder] tv_enable: %d", g_cvTvEnable.IntValue);
+    PrintToServer("[DODSG TV Recorder] ═══════════════════════════════");
 }
 
 bool IsSourceTVActive()
@@ -90,14 +88,6 @@ void CreateDemosDirectory()
     
     if (!DirExists(demosPath))
         CreateDirectory(demosPath, 511);
-}
-
-public Action Timer_ReloadMap(Handle timer)
-{
-    char currentMap[64];
-    GetCurrentMap(currentMap, sizeof(currentMap));
-    ServerCommand("changelevel %s", currentMap);
-    return Plugin_Stop;
 }
 
 // ══════════════════════════════════════════════════════════
