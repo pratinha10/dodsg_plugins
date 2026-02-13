@@ -104,6 +104,32 @@ Check examples and edit you way @`addons/sourcemod/configs/dodsg_cvar_checker.cf
 
 **Credits**
 - [Original plugin](https://forums.alliedmods.net/showthread.php?p=2529748) `Client-Convar-Checker` by Kento
+
+### 💽 dodsg_tvrecorder (Automatic SourceTV Demo Recorder)
+Automatically records SourceTV demos for competitive matches. Starts recording when warmup ends and stops on map change.
+
+- ✅ Auto-records on `dod_warmup_ends` event
+- ✅ Handles match restarts (deletes old demo, starts new)
+- ✅ Auto-creates `dod/demos/` directory
+- ✅ Optimized SourceTV settings (64 snapshotrate, transmitall)
+- ✅ Auto-enables SourceTV if disabled
+
+**Configuration**
+Plugin automatically configures SourceTV with optimal settings:
+- `tv_snapshotrate 64` - High quality recording
+- `tv_maxrate 16000` - Increased bandwidth
+- `tv_transmitall 1` - Always transmit all players
+- `tv_delay 30` - Standard competitive delay
+
+**Demo Files**
+Saved to `dod/demos/` with format: `DD-MM-YYYY_HHMMSS-mapname.dem`
+
+**Server ConVars/Commands**
+```
+dodsg_startdemo    // Force start recording
+dodsg_stopdemo     // Force stop recording
+dodsg_demostatus   // Check recording status
+```
 ---
 
 ## Requirements
