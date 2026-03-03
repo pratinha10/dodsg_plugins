@@ -2,7 +2,7 @@
  * dodsg_pause - Controlled Pause Plugin
  *
  * - Native engine pause + FL_FROZEN flag (server-side full input block)
- * - Disables dod_capture_area, dod_control_point_master, dod_scoring (stops tickpoints)
+ * - Freezes mp_tickpointinterval to 99999 during pause (stops tickpoints)
  * - Freezes mp_timelimit (compensates time lost during pause)
  * - Full black screen via Fade message (same method as dodsg_ftb)
  * - Center-text status display refreshed every 0.75s
@@ -44,7 +44,7 @@ ConVar g_cvMaxPauseTime;
 ConVar g_cvWarningInterval;
 ConVar g_cvSvPausable;
 ConVar g_cvMpTimelimit;
-ConVar g_cvTickPointInterval;  // mp_tickpointinterval — set to very high value to stop tickpoints
+ConVar g_cvTickPointInterval;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 bool   g_bPaused          = false;
@@ -54,7 +54,8 @@ int    g_iPauseTeam       = -1;
 int    g_iCountdown       = 0;
 int    g_iTimeRemaining   = 0;
 int    g_iNextWarning     = 0;
-int    g_iTimeleftAtPause = 0;
+int    g_iTimeleftAtPause    = 0;
+float  g_fSavedTickInterval = 30.0;  // saved mp_tickpointinterval value
 
 MoveType g_SavedMoveType[MAXPLAYERS + 1];
 
@@ -94,6 +95,7 @@ public void OnPluginStart()
 
     HookEvent("dod_round_start", Event_RoundStart, EventHookMode_Post);
     HookEvent("player_spawn",    Event_PlayerSpawn, EventHookMode_Post);
+    HookEvent("dod_tick_points", Event_TickPoints,  EventHookMode_Pre);
 
     LoadTranslations("common.phrases");
 }
@@ -148,6 +150,17 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
     ResetState();
 }
 
+// Block tickpoints during pause
+public Action Event_TickPoints(Event event, const char[] name, bool dontBroadcast)
+{
+    if (g_bPaused)
+    {
+        event.BroadcastDisabled = true;
+        return Plugin_Handled;
+    }
+    return Plugin_Continue;
+}
+
 // ── Command: !pause ───────────────────────────────────────────────────────────
 public Action Cmd_Pause(int client, int argc)
 {
@@ -177,7 +190,7 @@ public Action Cmd_Pause(int client, int argc)
 
     GetMapTimeLeft(g_iTimeleftAtPause);
     FreezeTimeleft();
-    SetCaptureAreasEnabled(false);
+    SetCaptureAreasEnabled(false);  // freezes mp_tickpointinterval
     FreezeAllPlayers();
     DoEnginePause();
     SendFadeAll(true);
@@ -524,34 +537,25 @@ void SetCaptureAreasEnabled(bool enable)
 
     // Disable capture zones (stops flag captures)
     while ((ent = FindEntityByClassname(ent, "dod_capture_area")) != -1)
-    {
-        SetVariantString("");
         AcceptEntityInput(ent, input);
-    }
 
     // Disable control point master (stops tickpoints logic)
-    // Also use mp_tickpointinterval as a backup to prevent point awards
     ent = -1;
     while ((ent = FindEntityByClassname(ent, "dod_control_point_master")) != -1)
-    {
-        SetVariantString("");
         AcceptEntityInput(ent, input);
 
-        if (!enable)
-        {
-            // Push the next give-points time far into the future as backup
-            // SetEntPropFloat: m_fGivePointsTime is a server-side float on this entity
-            SetEntPropFloat(ent, Prop_Data, "m_fGivePointsTime", GetGameTime() + 99999.0);
-        }
-    }
-
-    // Also set mp_tickpointinterval to a huge value as a final safety net
+    // Set mp_tickpointinterval to huge value as backup — prevents any point awards
     if (g_cvTickPointInterval != INVALID_HANDLE)
     {
         if (!enable)
+        {
+            g_fSavedTickInterval = g_cvTickPointInterval.FloatValue;
             g_cvTickPointInterval.FloatValue = 99999.0;
+        }
         else
-            g_cvTickPointInterval.FloatValue = 30.0; // default value
+        {
+            g_cvTickPointInterval.FloatValue = g_fSavedTickInterval;
+        }
     }
 }
 
